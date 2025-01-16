@@ -67,23 +67,18 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
         await _context.SaveChangesAsync();
     }
 
-    public TModel? Find(Expression<Func<TModel, bool>> predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public TModel? Find(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
         if (includes.Length > 0)
             foreach (var include in includes)
-            {
-                if (include.ReturnType is EntitySoftDelete)
-                    (include as EntitySoftDelete)!.DeletedAt = DateTime.UtcNow.ToTimeZone();
-                
                 query = query.Include(include);
-            }
         
-        return query.FirstOrDefault(predicate);
+        return predicate != null ? query.FirstOrDefault(predicate) : query.FirstOrDefault();
     }
 
-    public async Task<TModel?> FindAsync(Expression<Func<TModel, bool>> predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public async Task<TModel?> FindAsync(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -96,21 +91,16 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
                 query = query.Include(include);
             }
         
-        return await query.FirstOrDefaultAsync(predicate);
+        return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
     }
 
-    public TModel? Find(IEnumerable<string> selects, Expression<Func<TModel, bool>> predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public object? Find(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
         if (includes.Length > 0)
             foreach (var include in includes)
-            {
-                if (include.ReturnType is EntitySoftDelete)
-                    (include as EntitySoftDelete)!.DeletedAt = DateTime.UtcNow.ToTimeZone();
-                
                 query = query.Include(include);
-            }
 
         if (selects.Any())
         {
@@ -118,21 +108,16 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
             query = (IQueryable<TModel>)query.Select($"new ({selectString})");
         }
         
-        return query.FirstOrDefault(predicate);
+        return predicate != null ? query.FirstOrDefault(predicate) : query.FirstOrDefault();
     }
 
-    public async Task<TModel?> FindAsync(IEnumerable<string> selects, Expression<Func<TModel, bool>> predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public async Task<object?> FindAsync(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
         if (includes.Length > 0)
             foreach (var include in includes)
-            {
-                if (include.ReturnType is EntitySoftDelete)
-                    (include as EntitySoftDelete)!.DeletedAt = DateTime.UtcNow.ToTimeZone();
-                
                 query = query.Include(include);
-            }
 
         if (selects.Any())
         {
@@ -140,9 +125,94 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
             query = (IQueryable<TModel>)query.Select($"new ({selectString})");
         }
         
-        return await query.FirstOrDefaultAsync(predicate);
+        return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
     }
 
+    public IEnumerable<TModel> Get(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+        
+        return predicate != null ? query.Where(predicate).ToList() : query.ToList();
+    }
+
+    public async Task<IEnumerable<TModel>> GetAsync(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+        
+        return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
+    }
+
+    public int Count(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+        
+        return predicate != null ? query.Count(predicate) : query.Count();
+    }
+
+    public async Task<int> CountAsync(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+        
+        return predicate != null ? await query.CountAsync(predicate) : await query.CountAsync();
+    }
+
+    /// <param name="pageNum">Starts value on 0</param>
+    /// <returns></returns>
+    public Paginate<TModel> Paginate(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        var count = query.Count();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = query.Skip(pageNum).Take(take).ToList();
+        return Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public async Task<Paginate<TModel>> PaginateAsync(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        var count = await query.CountAsync();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = await query.Skip(pageNum).Take(take).ToListAsync();
+        return Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
 
     public void Dispose()
     {

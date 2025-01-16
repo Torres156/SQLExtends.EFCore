@@ -29,6 +29,18 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
         await _context.SaveChangesAsync();
     }
 
+    public void InsertRange(IEnumerable<TModel> models)
+    {
+        _context.Set<TModel>().AddRange(models);
+        _context.SaveChanges();
+    }
+
+    public async Task InsertRangeAsync(IEnumerable<TModel> models)
+    {
+        await _context.Set<TModel>().AddRangeAsync(models);
+        await _context.SaveChangesAsync();
+    }
+
     public void Update(TModel model)
     {
         _context.Set<TModel>().Update(model);
@@ -38,6 +50,18 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
     public async Task UpdateAsync(TModel model)
     {
         _context.Set<TModel>().Update(model);
+        await _context.SaveChangesAsync();
+    }
+
+    public void UpdateRange(IEnumerable<TModel> models)
+    {
+        _context.Set<TModel>().UpdateRange(models);
+        _context.SaveChanges();
+    }
+
+    public async Task UpdateRangeAsync(IEnumerable<TModel> models)
+    {
+        _context.Set<TModel>().UpdateRange(models);
         await _context.SaveChangesAsync();
     }
 
@@ -63,6 +87,36 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
         }
         else
             _context.Set<TModel>().Remove(model);
+        
+        await _context.SaveChangesAsync();
+    }
+
+    public void DeleteRange(IEnumerable<TModel> models)
+    {
+        if (typeof(TModel).IsSubclassOf(typeof(EntitySoftDelete)))
+        {
+            foreach (var model in models)
+                (model as EntitySoftDelete)!.DeletedAt = DateTime.UtcNow.ToTimeZone();
+            
+            _context.Set<TModel>().UpdateRange(models);
+        }
+        else
+            _context.Set<TModel>().RemoveRange(models);
+        
+        _context.SaveChanges();
+    }
+
+    public async Task DeleteRangeAsync(IEnumerable<TModel> models)
+    {
+        if (typeof(TModel).IsSubclassOf(typeof(EntitySoftDelete)))
+        {
+            foreach (var model in models)
+                (model as EntitySoftDelete)!.DeletedAt = DateTime.UtcNow.ToTimeZone();
+            
+            _context.Set<TModel>().UpdateRange(models);
+        }
+        else
+            _context.Set<TModel>().RemoveRange(models);
         
         await _context.SaveChangesAsync();
     }
@@ -150,6 +204,40 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
         return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
     }
 
+    public IEnumerable<TModel> GetWithOrder(Expression<Func<TModel, bool>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+        params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+
+        if (order == QueryOrders.Ascending)
+            query = query.OrderBy(orderPropertity);
+        else if(order == QueryOrders.Descending)
+            query = query.OrderByDescending(orderPropertity);
+        
+        return predicate != null ? query.Where(predicate).ToList() : query.ToList();
+    }
+
+    public async Task<IEnumerable<TModel>> GetWithOrderAsync(Expression<Func<TModel, bool>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+        params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+        
+        if (order == QueryOrders.Ascending)
+            query = query.OrderBy(orderPropertity);
+        else if(order == QueryOrders.Descending)
+            query = query.OrderByDescending(orderPropertity);
+        
+        return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
+    }
+
     public int Count(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
@@ -212,6 +300,21 @@ public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<T
         pageNum = Math.Min(pageNum, (count / take) * take);
         var result = await query.Skip(pageNum).Take(take).ToListAsync();
         return Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public bool Exists(Expression<Func<TModel, bool>> predicate)
+    {
+        return _context.Set<TModel>().Any(predicate);
+    }
+
+    public async Task<bool> ExistsAsync(Expression<Func<TModel, bool>> predicate)
+    {
+        return await _context.Set<TModel>().AnyAsync(predicate);
+    }
+
+    public IQueryable<TModel> Query()
+    {
+        return _context.Set<TModel>();
     }
 
     public void Dispose()

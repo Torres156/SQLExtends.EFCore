@@ -8,7 +8,7 @@
         <RepositoryUrl>https://github.com/Torres156/SQLExtends.EFCore</RepositoryUrl>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <LangVersion>default</LangVersion>
-        <Version>1.0.1.1</Version>
+        <Version>1.0.2</Version>
     </PropertyGroup>
 
     <ItemGroup>

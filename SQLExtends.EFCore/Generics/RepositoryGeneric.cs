@@ -142,6 +142,18 @@ public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : I
         return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
     }
 
+    public TModel? Find(Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        return predicate != null ? query.FirstOrDefault(predicate) : query.FirstOrDefault();
+    }
+
+    public async Task<TModel?> FindAsync(Expression<Func<TModel, bool>> predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
+    }
+
     public object? Find<TProperty>(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
@@ -176,6 +188,31 @@ public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : I
         return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
     }
 
+    public object? Find(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+ 
+        if (selects.Any())
+        {
+            var selectString = string.Join(",", selects);
+            query = (IQueryable<TModel>)query.Select($"new ({selectString})");
+        }
+        
+        return predicate != null ? query.FirstOrDefault(predicate) : query.FirstOrDefault();
+    }
+
+    public async Task<object?> FindAsync(IEnumerable<string> selects, Expression<Func<TModel, bool>> predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        if (selects.Any())
+        {
+            var selectString = string.Join(",", selects);
+            query = (IQueryable<TModel>)query.Select($"new ({selectString})");
+        }
+        
+        return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
+    }
+
     public IEnumerable<TModel> Get<TProperty>(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
@@ -195,6 +232,18 @@ public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : I
             foreach (var include in includes)
                 query = query.Include(include);
         
+        return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
+    }
+
+    public IEnumerable<TModel> Get(Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        return predicate != null ? query.Where(predicate).ToList() : query.ToList();
+    }
+
+    public async Task<IEnumerable<TModel>> GetAsync(Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
         return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
     }
 
@@ -274,6 +323,36 @@ public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : I
             foreach (var include in includes)
                 query = query.Include(include);
 
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        var count = await query.CountAsync();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = await query.Skip(pageNum).Take(take).ToListAsync();
+        return EFCore.Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public Paginate<TModel> Paginate(int pageNum, int take, Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        var count = query.Count();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = query.Skip(pageNum).Take(take).ToList();
+        return EFCore.Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public async Task<Paginate<TModel>> PaginateAsync(int pageNum, int take, Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
         if (predicate != null)
             query = query.Where(predicate);
         

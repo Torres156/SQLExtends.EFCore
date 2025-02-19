@@ -4,10 +4,10 @@ namespace SQLExtends.EFCore.Entities;
 
 public abstract class EntityGeneric
 {
-    [Column("id")]
+    [Column("Id")]
     public int Id { get; set; }
 
-    [Column("ativo")] 
+    [Column("Ativo")] 
     public bool Ativo { get; set; } = true;
 
     [Column("CreatedAt")]

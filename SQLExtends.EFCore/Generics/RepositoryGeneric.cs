@@ -296,6 +296,58 @@ public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : I
         return Paginate<TModel>.CreateCustom(result, pageNum, take, count);
     }
 
+    public Paginate<TModel> PaginateWithOrder(int pageNum, int take, Expression<Func<TModel, TModel>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+        params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        if (order == QueryOrders.Ascending)
+            query = query.OrderBy(orderPropertity);
+        else if(order == QueryOrders.Descending)
+            query = query.OrderByDescending(orderPropertity);
+        
+        var count = query.Count();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = query.Skip(pageNum).Take(take).ToList();
+        return Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public async Task<Paginate<TModel>> PaginateWithOrderAsync(int pageNum, int take, Expression<Func<TModel, TModel>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+        params Expression<Func<TModel, TModel>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        if (order == QueryOrders.Ascending)
+            query = query.OrderBy(orderPropertity);
+        else if(order == QueryOrders.Descending)
+            query = query.OrderByDescending(orderPropertity);
+        
+        var count = await query.CountAsync();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = await query.Skip(pageNum).Take(take).ToListAsync();
+        return Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
     public bool Exists(Expression<Func<TModel, bool>> predicate)
     {
         return _context.Set<TModel>().Any(predicate);

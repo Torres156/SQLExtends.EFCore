@@ -40,6 +40,9 @@ public interface IRepositoryGeneric<TModel>
     
     Paginate<TModel> Paginate(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
     Task<Paginate<TModel>> PaginateAsync(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
+    
+    Paginate<TModel> PaginateWithOrder(int pageNum, int take, Expression<Func<TModel, TModel>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
+    Task<Paginate<TModel>> PaginateWithOrderAsync(int pageNum, int take, Expression<Func<TModel, TModel>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
 
     bool Exists(Expression<Func<TModel, bool>> predicate);
     Task<bool> ExistsAsync(Expression<Func<TModel, bool>> predicate);

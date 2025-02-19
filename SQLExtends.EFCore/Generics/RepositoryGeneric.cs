@@ -5,18 +5,12 @@ using SQLExtends.EFCore.Entities;
 
 namespace SQLExtends.EFCore.Generics;
 
-public abstract class RepositoryGeneric<TContext, TModel> : IRepositoryGeneric<TModel>, IDisposable
+public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : IRepositoryGeneric<TModel>, IDisposable
     where TContext : DbContext
     where TModel : class
 {
-    protected TContext _context;
-    
-    private RepositoryGeneric()
-    {
-        _context = (TContext?)Activator.CreateInstance(typeof(TContext), new object[] { new DbContextOptions<TContext>() })
-                   ?? throw new NullReferenceException("The context was null.");
-    }
-    
+    private readonly TContext _context = (TContext)context;
+
     public void Insert(TModel model)
     {
         _context.Set<TModel>().Add(model);

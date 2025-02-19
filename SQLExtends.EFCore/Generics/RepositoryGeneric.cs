@@ -198,7 +198,7 @@ public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : I
         return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
     }
 
-    public IEnumerable<TModel> GetWithOrder(Expression<Func<TModel, bool>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+    public IEnumerable<TModel> GetWithOrder(Expression<Func<TModel, TModel>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
         params Expression<Func<TModel, TModel>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
@@ -215,7 +215,7 @@ public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : I
         return predicate != null ? query.Where(predicate).ToList() : query.ToList();
     }
 
-    public async Task<IEnumerable<TModel>> GetWithOrderAsync(Expression<Func<TModel, bool>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+    public async Task<IEnumerable<TModel>> GetWithOrderAsync(Expression<Func<TModel, TModel>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
         params Expression<Func<TModel, TModel>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();

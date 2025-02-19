@@ -8,7 +8,7 @@ public abstract class EntityGeneric
     public int Id { get; set; }
 
     [Column("ativo")] 
-    public int Ativo { get; set; } = 1;
+    public bool Ativo { get; set; } = true;
 
     [Column("CreatedAt")]
     public DateTime? CreatedAt { get; set; }

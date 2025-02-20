@@ -4,6 +4,11 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <PackageProjectUrl>https://github.com/Torres156/SQLExtends.EFCore</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Torres156/SQLExtends.EFCore</RepositoryUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <LangVersion>default</LangVersion>
+        <Version>1.0.2</Version>
     </PropertyGroup>
 
     <ItemGroup>

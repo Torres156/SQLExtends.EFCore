@@ -121,7 +121,7 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         await _context.SaveChangesAsync();
     }
 
-    public TModel? Find(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public TModel? Find<TProperty>(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -132,7 +132,7 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         return predicate != null ? query.FirstOrDefault(predicate) : query.FirstOrDefault();
     }
 
-    public async Task<TModel?> FindAsync(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public async Task<TModel?> FindAsync<TProperty>(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -148,7 +148,19 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
     }
 
-    public object? Find(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public TModel? Find(Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        return predicate != null ? query.FirstOrDefault(predicate) : query.FirstOrDefault();
+    }
+
+    public async Task<TModel?> FindAsync(Expression<Func<TModel, bool>> predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
+    }
+
+    public object? Find<TProperty>(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -165,7 +177,7 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         return predicate != null ? query.FirstOrDefault(predicate) : query.FirstOrDefault();
     }
 
-    public async Task<object?> FindAsync(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public async Task<object?> FindAsync<TProperty>(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -182,7 +194,32 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
     }
 
-    public IEnumerable<TModel> Get(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public object? Find(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+ 
+        if (selects.Any())
+        {
+            var selectString = string.Join(",", selects);
+            query = (IQueryable<TModel>)query.Select($"new ({selectString})");
+        }
+        
+        return predicate != null ? query.FirstOrDefault(predicate) : query.FirstOrDefault();
+    }
+
+    public async Task<object?> FindAsync(IEnumerable<string> selects, Expression<Func<TModel, bool>> predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        if (selects.Any())
+        {
+            var selectString = string.Join(",", selects);
+            query = (IQueryable<TModel>)query.Select($"new ({selectString})");
+        }
+        
+        return predicate != null ? await query.FirstOrDefaultAsync(predicate) : await query.FirstOrDefaultAsync();
+    }
+
+    public IEnumerable<TModel> Get<TProperty>(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -193,7 +230,7 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         return predicate != null ? query.Where(predicate).ToList() : query.ToList();
     }
 
-    public async Task<IEnumerable<TModel>> GetAsync(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public async Task<IEnumerable<TModel>> GetAsync<TProperty>(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -204,8 +241,20 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
     }
 
-    public IEnumerable<TModel> GetWithOrder(Expression<Func<TModel, bool>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
-        params Expression<Func<TModel, TModel>>[] includes)
+    public IEnumerable<TModel> Get(Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        return predicate != null ? query.Where(predicate).ToList() : query.ToList();
+    }
+
+    public async Task<IEnumerable<TModel>> GetAsync(Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
+    }
+
+    public IEnumerable<TModel> GetWithOrder<TProperty>(Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+        params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -221,8 +270,8 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         return predicate != null ? query.Where(predicate).ToList() : query.ToList();
     }
 
-    public async Task<IEnumerable<TModel>> GetWithOrderAsync(Expression<Func<TModel, bool>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
-        params Expression<Func<TModel, TModel>>[] includes)
+    public async Task<IEnumerable<TModel>> GetWithOrderAsync<TProperty>(Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+        params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -238,31 +287,21 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         return predicate != null ? await query.Where(predicate).ToListAsync() : await query.ToListAsync();
     }
 
-    public int Count(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public int Count(Expression<Func<TModel, bool>>? predicate)
     {
         var query = _context.Set<TModel>().AsQueryable();
-        
-        if (includes.Length > 0)
-            foreach (var include in includes)
-                query = query.Include(include);
-        
         return predicate != null ? query.Count(predicate) : query.Count();
     }
 
-    public async Task<int> CountAsync(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public async Task<int> CountAsync(Expression<Func<TModel, bool>>? predicate)
     {
         var query = _context.Set<TModel>().AsQueryable();
-        
-        if (includes.Length > 0)
-            foreach (var include in includes)
-                query = query.Include(include);
-        
         return predicate != null ? await query.CountAsync(predicate) : await query.CountAsync();
     }
 
     /// <param name="pageNum">Starts value on 0</param>
     /// <returns></returns>
-    public Paginate<TModel> Paginate(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public Paginate<TModel> Paginate<TProperty>(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -279,10 +318,10 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         
         pageNum = Math.Min(pageNum, (count / take) * take);
         var result = query.Skip(pageNum).Take(take).ToList();
-        return Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+        return EFCore.Paginate<TModel>.CreateCustom(result, pageNum, take, count);
     }
 
-    public async Task<Paginate<TModel>> PaginateAsync(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes)
+    public async Task<Paginate<TModel>> PaginateAsync<TProperty>(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes)
     {
         var query = _context.Set<TModel>().AsQueryable();
         
@@ -299,7 +338,89 @@ public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IR
         
         pageNum = Math.Min(pageNum, (count / take) * take);
         var result = await query.Skip(pageNum).Take(take).ToListAsync();
-        return Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+        return EFCore.Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public Paginate<TModel> Paginate(int pageNum, int take, Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        var count = query.Count();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = query.Skip(pageNum).Take(take).ToList();
+        return EFCore.Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public async Task<Paginate<TModel>> PaginateAsync(int pageNum, int take, Expression<Func<TModel, bool>>? predicate)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        var count = await query.CountAsync();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = await query.Skip(pageNum).Take(take).ToListAsync();
+        return EFCore.Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public Paginate<TModel> PaginateWithOrder<TProperty>(int pageNum, int take, Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+        params Expression<Func<TModel, TProperty>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        if (order == QueryOrders.Ascending)
+            query = query.OrderBy(orderPropertity);
+        else if(order == QueryOrders.Descending)
+            query = query.OrderByDescending(orderPropertity);
+        
+        var count = query.Count();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = query.Skip(pageNum).Take(take).ToList();
+        return EFCore.Paginate<TModel>.CreateCustom(result, pageNum, take, count);
+    }
+
+    public async Task<Paginate<TModel>> PaginateWithOrderAsync<TProperty>(int pageNum, int take, Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate,
+        params Expression<Func<TModel, TProperty>>[] includes)
+    {
+        var query = _context.Set<TModel>().AsQueryable();
+        
+        if (includes.Length > 0)
+            foreach (var include in includes)
+                query = query.Include(include);
+
+        if (predicate != null)
+            query = query.Where(predicate);
+        
+        if (order == QueryOrders.Ascending)
+            query = query.OrderBy(orderPropertity);
+        else if(order == QueryOrders.Descending)
+            query = query.OrderByDescending(orderPropertity);
+        
+        var count = await query.CountAsync();
+        if (count == 0)
+            return [];
+        
+        pageNum = Math.Min(pageNum, (count / take) * take);
+        var result = await query.Skip(pageNum).Take(take).ToListAsync();
+        return EFCore.Paginate<TModel>.CreateCustom(result, pageNum, take, count);
     }
 
     public bool Exists(Expression<Func<TModel, bool>> predicate)

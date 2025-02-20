@@ -23,23 +23,35 @@ public interface IRepositoryGeneric<TModel>
     void DeleteRange(IEnumerable<TModel> models);
     Task DeleteRangeAsync(IEnumerable<TModel> models);
     
-    TModel? Find(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
-    Task<TModel?> FindAsync(Expression<Func<TModel, bool>> predicate, params Expression<Func<TModel, TModel>>[] includes);
+    TModel? Find<TProperty>(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    Task<TModel?> FindAsync<TProperty>(Expression<Func<TModel, bool>> predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    TModel? Find(Expression<Func<TModel, bool>>? predicate);
+    Task<TModel?> FindAsync(Expression<Func<TModel, bool>> predicate);
     
-    object? Find(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
-    Task<object?> FindAsync(IEnumerable<string>  selects, Expression<Func<TModel, bool>> predicate, params Expression<Func<TModel, TModel>>[] includes);
+    object? Find<TProperty>(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    Task<object?> FindAsync<TProperty>(IEnumerable<string>  selects, Expression<Func<TModel, bool>> predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    object? Find(IEnumerable<string> selects, Expression<Func<TModel, bool>>? predicate);
+    Task<object?> FindAsync(IEnumerable<string>  selects, Expression<Func<TModel, bool>> predicate);
 
-    IEnumerable<TModel> Get(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
-    Task<IEnumerable<TModel>> GetAsync(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
+    IEnumerable<TModel> Get<TProperty>(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    Task<IEnumerable<TModel>> GetAsync<TProperty>(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    IEnumerable<TModel> Get(Expression<Func<TModel, bool>>? predicate);
+    Task<IEnumerable<TModel>> GetAsync(Expression<Func<TModel, bool>>? predicate);
     
-    IEnumerable<TModel> GetWithOrder(Expression<Func<TModel, bool>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
-    Task<IEnumerable<TModel>> GetWithOrderAsync(Expression<Func<TModel, bool>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
+    IEnumerable<TModel> GetWithOrder<TProperty>(Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    Task<IEnumerable<TModel>> GetWithOrderAsync<TProperty>(Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
     
-    int Count(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
-    Task<int> CountAsync(Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
+    int Count(Expression<Func<TModel, bool>>? predicate);
+    Task<int> CountAsync(Expression<Func<TModel, bool>>? predicate);
     
-    Paginate<TModel> Paginate(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
-    Task<Paginate<TModel>> PaginateAsync(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
+    Paginate<TModel> Paginate<TProperty>(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    Task<Paginate<TModel>> PaginateAsync<TProperty>(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    Paginate<TModel> Paginate(int pageNum, int take, Expression<Func<TModel, bool>>? predicate);
+    Task<Paginate<TModel>> PaginateAsync(int pageNum, int take, Expression<Func<TModel, bool>>? predicate);
+    
+    Paginate<TModel> PaginateWithOrder<TProperty>(int pageNum, int take, Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+    Task<Paginate<TModel>> PaginateWithOrderAsync<TProperty>(int pageNum, int take, Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
+
     Task InsertBulkAsync(IEnumerable<TModel> clientes, int chunkSize = 10000, int maxParallelism = 4);
     Task UpdateBulkAsync(IEnumerable<TModel> collections, int chunkSize);
     bool Exists(Expression<Func<TModel, bool>> predicate);

@@ -40,7 +40,8 @@ public interface IRepositoryGeneric<TModel>
     
     Paginate<TModel> Paginate(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
     Task<Paginate<TModel>> PaginateAsync(int pageNum, int take, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TModel>>[] includes);
-
+    Task InsertBulkAsync(IEnumerable<TModel> clientes, int chunkSize = 10000, int maxParallelism = 4);
+    Task UpdateBulkAsync(IEnumerable<TModel> collections, int chunkSize);
     bool Exists(Expression<Func<TModel, bool>> predicate);
     Task<bool> ExistsAsync(Expression<Func<TModel, bool>> predicate);
     

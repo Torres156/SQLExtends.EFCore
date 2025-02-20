@@ -1,15 +1,21 @@
-﻿using System.Linq.Dynamic.Core;
+﻿using System.Collections;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Data;
+using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
+using System.Reflection;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SQLExtends.EFCore.Entities;
 
 namespace SQLExtends.EFCore.Generics;
 
-public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : IRepositoryGeneric<TModel>, IDisposable
+public abstract class RepositoryGeneric<TContext, TModel>(TContext context) : IRepositoryGeneric<TModel>, IDisposable
     where TContext : DbContext
     where TModel : class
 {
-    private readonly TContext _context = (TContext)context;
+    private readonly TContext _context = context;
+    private const int ChunkSize = 1000;
 
     public void Insert(TModel model)
     {
@@ -304,6 +310,163 @@ public abstract class RepositoryGeneric<TContext, TModel>(DbContext context) : I
     public async Task<bool> ExistsAsync(Expression<Func<TModel, bool>> predicate)
     {
         return await _context.Set<TModel>().AnyAsync(predicate);
+    }
+    
+    public async Task UpdateBulkAsync(IEnumerable<TModel> collections, int chunkSize = ChunkSize)
+    {
+        if (!collections.Any()) return;
+        
+        var connectionString = _context.Database.GetConnectionString() ?? string.Empty;
+        
+        string tableName = GetTableName(context.Set<TModel>());
+        const string tempTableName = "#TempTable";
+
+        DataTable table = ToDataTable(collections.ToArray());
+
+        await using SqlConnection connection = new(connectionString);
+        await connection.OpenAsync();
+        await using SqlTransaction transaction = connection.BeginTransaction();
+
+        try
+        {
+            var columnNames = string.Join(", ", table.Columns.Cast<DataColumn>().Select(c => $"[{c.ColumnName}]").ToArray());
+            var createTableCmd = $"""CREATE TABLE {tempTableName} ({columnNames})""";
+            await using (var cmd = new SqlCommand(createTableCmd, connection, transaction))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            using SqlBulkCopy bulkCopy = new(connection, SqlBulkCopyOptions.TableLock, transaction)
+            {
+                DestinationTableName = tempTableName
+            };
+
+            foreach (DataColumn column in table.Columns)
+            {
+                bulkCopy.ColumnMappings.Add(column.ColumnName, column.ColumnName);
+            }
+
+            await bulkCopy.WriteToServerAsync(table);
+
+            var mergeSql = $@"
+                MERGE INTO {tableName} AS Target
+                USING {tempTableName} AS Source
+                ON Target.Id = Source.Id
+                WHEN MATCHED THEN
+                    UPDATE SET {string.Join(", ", table.Columns.Cast<DataColumn>().Where(c => c.ColumnName != "Id").Select(c => $"Target.[{c.ColumnName}] = Source.[{c.ColumnName}]").ToArray())};";
+            
+            await using (var cmd = new SqlCommand(mergeSql, connection, transaction))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            await using (var cmd = new SqlCommand($"DROP TABLE {tempTableName}", connection, transaction))
+            {
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+    }
+    
+    public async Task InsertBulkAsync(IEnumerable<TModel> collections, int chunkSize = ChunkSize, int maxParallelism = 4)
+    {
+        if (!collections.Any()) return; // Avoids enumeration
+
+        var tableName = context.Model.FindEntityType(typeof(TModel))?.GetTableName();
+        var connectionString = context.Database.GetConnectionString() ?? string.Empty;
+
+        int chunkCount = 0;
+        var chunks = collections.Chunk(chunkSize);
+
+        await Parallel.ForEachAsync(chunks, new ParallelOptions { MaxDegreeOfParallelism = maxParallelism }, async (chunk, _) =>
+        {
+            int currentChunk = Interlocked.Increment(ref chunkCount); // Ensures correct chunk indexing
+            await InsertChunkAsync(chunk, tableName, connectionString);
+        });
+    }
+    
+    async Task InsertChunkAsync(IEnumerable<TModel> chunk, string tableName, string connectionString)
+    {
+        await using SqlConnection? connection = new(connectionString);
+        await connection.OpenAsync();
+        await using SqlTransaction? transaction = connection.BeginTransaction();
+
+        try
+        {
+            using SqlBulkCopy? bulkCopy = new(connection, SqlBulkCopyOptions.TableLock, transaction);
+            bulkCopy.DestinationTableName = tableName;
+            bulkCopy.BatchSize = ChunkSize;
+
+            DataTable table = ToDataTable(chunk);
+
+            foreach (DataColumn column in table.Columns)
+            {
+                bulkCopy.ColumnMappings.Add(column.ColumnName, column.ColumnName);
+            }
+
+            await bulkCopy.WriteToServerAsync(table);
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+    }
+
+    private static DataTable ToDataTable(IEnumerable<TModel> data)
+    {
+        DataTable table = new(typeof(TModel).Name);
+        PropertyInfo[] properties = typeof(TModel).GetProperties()
+            .Where(p => p.CanRead
+                          && p.GetCustomAttribute<NotMappedAttribute>() == null
+                          && p.Name != "Id"
+                          && !(typeof(IEnumerable).IsAssignableFrom(p.PropertyType) && p.PropertyType != typeof(string)) 
+                          && (p.PropertyType.IsPrimitive
+                              || p.PropertyType == typeof(string)
+                              || p.PropertyType == typeof(decimal)
+                              || p.PropertyType == typeof(DateTime)
+                              || p.PropertyType.IsEnum
+                              || (p.PropertyType.IsGenericType && p.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))))
+            .ToArray();
+        
+        foreach (var prop in properties)
+        {
+            Type colType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+            table.Columns.Add(prop.GetCustomAttribute<ColumnAttribute>()?.Name ?? prop.Name, colType);
+        }
+
+        foreach (TModel? item in data)
+        {
+            DataRow row = table.NewRow();
+            foreach (PropertyInfo? prop in properties)
+            {
+                row[prop.GetCustomAttribute<ColumnAttribute>()?.Name ?? prop.Name] = prop.GetValue(item) ?? DBNull.Value;
+            }
+            table.Rows.Add(row);
+        }
+
+        return table;
+    }
+    
+    private static string GetTableName(DbSet<TModel> set)
+    {
+        var tableAttribute = typeof(TModel).GetCustomAttribute<TableAttribute>()?.Name;
+        return tableAttribute ?? set.EntityType.GetTableName() ?? typeof(TModel).Name;
     }
 
     public IQueryable<TModel> Query()

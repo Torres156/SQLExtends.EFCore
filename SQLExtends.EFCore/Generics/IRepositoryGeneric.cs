@@ -52,6 +52,8 @@ public interface IRepositoryGeneric<TModel>
     Paginate<TModel> PaginateWithOrder<TProperty>(int pageNum, int take, Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
     Task<Paginate<TModel>> PaginateWithOrderAsync<TProperty>(int pageNum, int take, Expression<Func<TModel, TProperty>> orderPropertity, QueryOrders order, Expression<Func<TModel, bool>>? predicate, params Expression<Func<TModel, TProperty>>[] includes);
 
+    Task InsertBulkAsync(IEnumerable<TModel> clientes, int chunkSize = 10000, int maxParallelism = 4);
+    Task UpdateBulkAsync(IEnumerable<TModel> collections, int chunkSize);
     bool Exists(Expression<Func<TModel, bool>> predicate);
     Task<bool> ExistsAsync(Expression<Func<TModel, bool>> predicate);
     

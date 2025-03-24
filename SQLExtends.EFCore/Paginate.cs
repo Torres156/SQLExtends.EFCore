@@ -30,10 +30,20 @@ public class Paginate<T> : List<T>
         AddRange(items);
     }
 
+    [JsonPropertyName("previousPage")]
+    [JsonProperty("previousPage")]
     public int PreviousPage => Math.Max(PageNum - 1, 1); 
+    
+    [JsonPropertyName("hasPreviousPage")]
+    [JsonProperty("hasPreviousPage")]
     public bool HasPreviousPage => PageNum > 1;
 
+    [JsonPropertyName("nextPage")]
+    [JsonProperty("nextPage")]
     public int NextPage => Math.Min(PageNum + 1, TotalPages);
+    
+    [JsonPropertyName("hasNextPage")]
+    [JsonProperty("hasNextPage")]
     public bool HasNextPage => PageNum < TotalPages;
 
     public static Paginate<T> CreateCustom(IList<T> source, int pageNum, int pageSize, int count)

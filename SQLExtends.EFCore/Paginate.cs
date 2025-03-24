@@ -1,9 +1,20 @@
-﻿namespace SQLExtends.EFCore;
+﻿using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+
+namespace SQLExtends.EFCore;
 
 public class Paginate<T> : List<T>
 {
+    [JsonPropertyName("pageNum")]
+    [JsonProperty("pageNum")]
     public int PageNum { get; set; }
+    
+    [JsonPropertyName("pageSize")]
+    [JsonProperty("pageSize")]
     public int PageSize { get; set; }
+    
+    [JsonPropertyName("totalPages")]
+    [JsonProperty("totalPages")]
     public int TotalPages { get; set; }
 
     public Paginate() { 
